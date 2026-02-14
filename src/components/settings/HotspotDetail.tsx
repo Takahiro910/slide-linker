@@ -1,8 +1,9 @@
 import { useStore } from '../../store'
+import { HotspotStyleEditor } from './HotspotStyleEditor'
 import { LinkTypeSelector } from './LinkTypeSelector'
 import { SlideTargetPicker } from './SlideTargetPicker'
 import { UrlInput } from './UrlInput'
-import type { Hotspot } from '../../types'
+import type { Hotspot, HotspotStyle } from '../../types'
 
 interface HotspotDetailProps {
   hotspot: Hotspot
@@ -32,6 +33,10 @@ export function HotspotDetail({ hotspot, slideId }: HotspotDetailProps) {
 
   function handleTooltipChange(tooltip: string) {
     updateHotspot(slideId, hotspot.id, { tooltip: tooltip || undefined })
+  }
+
+  function handleStyleChange(newStyle: HotspotStyle) {
+    updateHotspot(slideId, hotspot.id, { style: newStyle })
   }
 
   function handleDelete() {
@@ -65,6 +70,14 @@ export function HotspotDetail({ hotspot, slideId }: HotspotDetailProps) {
           onChange={(e) => handleTooltipChange(e.target.value)}
           placeholder="ホバー時の説明文（任意）"
           className="hotspot-input"
+        />
+      </div>
+
+      <div className="hotspot-field">
+        <label>スタイル</label>
+        <HotspotStyleEditor
+          style={hotspot.style}
+          onChange={handleStyleChange}
         />
       </div>
 

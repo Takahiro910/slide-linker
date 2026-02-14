@@ -12,6 +12,7 @@ export function useProjectActions() {
   const selectSlide = useStore((s) => s.selectSlide)
   const clearProject = useStore((s) => s.clearProject)
   const clearImageCache = useStore((s) => s.clearImageCache)
+  const addRecentProject = useStore((s) => s.addRecentProject)
 
   async function loadAllImages(project: Project, projectDir: string) {
     for (const slide of project.slides) {
@@ -28,11 +29,22 @@ export function useProjectActions() {
     }
   }
 
+  function recordRecentProject(path: string, project: Project) {
+    const name = project.source_file
+      ? project.source_file.replace(/^.*[\\/]/, '').replace(/\.[^.]+$/, '')
+      : 'Untitled'
+    addRecentProject({
+      path,
+      name,
+      openedAt: new Date().toISOString(),
+    })
+  }
+
   async function newProject() {
     const sourcePath = await open({
-      title: 'プレゼンファイルを選択',
+      title: 'Select presentation file',
       filters: [
-        { name: 'プレゼンテーション (PDF / PPTX)', extensions: ['pdf', 'pptx'] },
+        { name: 'Presentation (PDF / PPTX)', extensions: ['pdf', 'pptx'] },
         { name: 'PDF', extensions: ['pdf'] },
         { name: 'PowerPoint', extensions: ['pptx'] },
       ],
@@ -42,14 +54,14 @@ export function useProjectActions() {
     const isPptx = sourcePath.toLowerCase().endsWith('.pptx')
     if (isPptx) {
       alert(
-        'PPTX対応は今後のアップデートで追加予定です。\n' +
-          '現在はPDFに変換してからお使いください。',
+        'PPTX support will be added in a future update.\n' +
+          'Please convert to PDF first.',
       )
       return
     }
 
     const projectDir = await save({
-      title: 'プロジェクトの保存先を選択',
+      title: 'Choose project save location',
       filters: [
         { name: 'Slide Linker Project', extensions: ['slproj.json'] },
       ],
@@ -59,7 +71,7 @@ export function useProjectActions() {
     const dir = projectDir.replace(/[\\/][^\\/]+$/, '')
     const slidesDir = `${dir}/slides`
 
-    setLoading(true, 'PDFをスライド画像に変換中...')
+    setLoading(true, 'Converting PDF to slide images...')
     try {
       const slides = await tauriCommands.convertPdfToImages(sourcePath, slidesDir)
       const aspectRatio = await tauriCommands.detectAspectRatio(slidesDir)
@@ -84,6 +96,7 @@ export function useProjectActions() {
       setProject(project)
       setProjectPath(projectDir)
       setProjectDir(dir)
+      recordRecentProject(projectDir, project)
 
       await loadAllImages(project, dir)
 
@@ -92,7 +105,7 @@ export function useProjectActions() {
       }
     } catch (err) {
       console.error('Failed to create project:', err)
-      alert(`プロジェクトの作成に失敗しました: ${err}`)
+      alert(`Failed to create project: ${err}`)
     } finally {
       setLoading(false)
     }
@@ -100,14 +113,18 @@ export function useProjectActions() {
 
   async function openProject() {
     const path = await open({
-      title: 'プロジェクトを開く',
+      title: 'Open project',
       filters: [
         { name: 'Slide Linker Project', extensions: ['slproj.json'] },
       ],
     })
     if (!path) return
 
-    setLoading(true, 'プロジェクトを読み込み中...')
+    await openProjectByPath(path)
+  }
+
+  async function openProjectByPath(path: string) {
+    setLoading(true, 'Loading project...')
     try {
       const project = await tauriCommands.loadProject(path)
       const dir = path.replace(/[\\/][^\\/]+$/, '')
@@ -115,6 +132,7 @@ export function useProjectActions() {
       setProject(project)
       setProjectPath(path)
       setProjectDir(dir)
+      recordRecentProject(path, project)
 
       await loadAllImages(project, dir)
 
@@ -123,10 +141,14 @@ export function useProjectActions() {
       }
     } catch (err) {
       console.error('Failed to open project:', err)
-      alert(`プロジェクトを開けませんでした: ${err}`)
+      alert(`Failed to open project: ${err}`)
     } finally {
       setLoading(false)
     }
+  }
+
+  async function openRecentProject(path: string) {
+    await openProjectByPath(path)
   }
 
   async function saveProject() {
@@ -145,7 +167,7 @@ export function useProjectActions() {
       useStore.getState().markClean()
     } catch (err) {
       console.error('Failed to save project:', err)
-      alert(`保存に失敗しました: ${err}`)
+      alert(`Failed to save: ${err}`)
     }
   }
 
@@ -171,9 +193,10 @@ export function useProjectActions() {
       setProject(updated)
       setProjectPath(path)
       setProjectDir(dir)
+      recordRecentProject(path, updated)
     } catch (err) {
       console.error('Failed to save project:', err)
-      alert(`保存に失敗しました: ${err}`)
+      alert(`Failed to save: ${err}`)
     }
   }
 
@@ -183,18 +206,40 @@ export function useProjectActions() {
     if (!project || !projectDir) return
 
     const outputPath = await save({
-      title: 'HTMLをエクスポート',
+      title: 'Export HTML',
       filters: [{ name: 'HTML', extensions: ['html'] }],
     })
     if (!outputPath) return
 
-    setLoading(true, 'HTMLを生成中...')
+    setLoading(true, 'Generating HTML...')
     try {
       await tauriCommands.exportHtml(projectDir, project, outputPath)
-      alert('エクスポートが完了しました！')
+      alert('Export completed!')
     } catch (err) {
       console.error('Failed to export HTML:', err)
-      alert(`エクスポートに失敗しました: ${err}`)
+      alert(`Export failed: ${err}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function exportPdf() {
+    const project = useStore.getState().project
+    const projectDir = useStore.getState().projectDir
+    if (!project || !projectDir) return
+
+    const outputPath = await save({
+      title: 'PDFをエクスポート',
+      filters: [{ name: 'PDF', extensions: ['pdf'] }],
+    })
+    if (!outputPath) return
+
+    setLoading(true, 'PDFを生成中...')
+    try {
+      await tauriCommands.exportPdf(projectDir, project, outputPath)
+      alert('PDFエクスポートが完了しました！')
+    } catch (err) {
+      alert(`PDFエクスポートに失敗しました: ${err}`)
     } finally {
       setLoading(false)
     }
@@ -208,9 +253,11 @@ export function useProjectActions() {
   return {
     newProject,
     openProject,
+    openRecentProject,
     saveProject,
     saveProjectAs,
     exportHtml,
+    exportPdf,
     closeProject,
   }
 }

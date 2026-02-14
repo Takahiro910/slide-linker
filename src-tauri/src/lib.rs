@@ -11,7 +11,10 @@ pub fn run() {
             commands::project::save_project,
             commands::project::load_project,
             commands::export::export_html,
+            commands::export_pdf::export_pdf,
             commands::image::read_image_base64,
+            commands::settings::load_settings,
+            commands::settings::save_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

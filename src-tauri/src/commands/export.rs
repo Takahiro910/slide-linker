@@ -2,7 +2,57 @@ use base64::Engine;
 use std::path::PathBuf;
 use tauri::Emitter;
 
-use crate::models::{ExportProgress, Hotspot, Project, Slide};
+use crate::models::{ExportProgress, Hotspot, Project, Slide, TextOverlay};
+
+const ANALYTICS_SCRIPT: &str = r#"<script>
+(function() {
+  var KEY = 'sl_analytics';
+  var events = JSON.parse(localStorage.getItem(KEY) || '[]');
+
+  function track(type, id, extra) {
+    events.push({
+      type: type,
+      id: id || '',
+      extra: extra || '',
+      time: new Date().toISOString()
+    });
+    try { localStorage.setItem(KEY, JSON.stringify(events)); } catch(e) {}
+  }
+
+  var viewObs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) {
+        var id = e.target.id || e.target.closest('[id]').id;
+        track('view', id);
+      }
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('.main-slide,.modal-overlay').forEach(function(el) {
+    viewObs.observe(el);
+  });
+
+  var origOpen = window.openSlide;
+  window.openSlide = function(id) { track('click', id); origOpen(id); };
+  var origUrl = window.openUrl;
+  window.openUrl = function(url) { track('url_click', '', url); origUrl(url); };
+
+  var btn = document.createElement('button');
+  btn.textContent = '\u2193 CSV';
+  btn.className = 'analytics-download-btn';
+  btn.title = '\u5206\u6790\u30c7\u30fc\u30bf\u3092CSV\u3067\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9';
+  btn.onclick = function() {
+    var csv = 'type,id,extra,time\n';
+    events.forEach(function(e) {
+      csv += [e.type,e.id,e.extra,e.time].join(',') + '\n';
+    });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+    a.download = 'analytics.csv';
+    a.click();
+  };
+  document.body.appendChild(btn);
+})();
+</script>"#;
 
 #[tauri::command]
 pub async fn export_html(
@@ -80,12 +130,19 @@ pub async fn export_html(
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| "Slide Linker Presentation".to_string());
 
+    let analytics = if project.enable_analytics.unwrap_or(false) {
+        ANALYTICS_SCRIPT.to_string()
+    } else {
+        String::new()
+    };
+
     let html = template
         .replace("{{TITLE}}", &html_escape(&title))
         .replace("{{ASPECT_RATIO}}", &aspect_ratio_css)
         .replace("{{MAIN_SLIDES}}", &main_html)
         .replace("{{SUB_SLIDES}}", &sub_html)
-        .replace("{{DOT_NAV}}", &dot_nav);
+        .replace("{{DOT_NAV}}", &dot_nav)
+        .replace("{{ANALYTICS_SCRIPT}}", &analytics);
 
     tokio::fs::write(&output_path, html)
         .await
@@ -108,6 +165,7 @@ fn render_main_slide(slide: &Slide, base64_img: &str, aspect_ratio: &str) -> Str
     <div class="slide-container" style="position:relative;width:100%;aspect-ratio:{ar};">
       <img src="data:image/png;base64,{img}" alt="{label}" />
       <div class="hotspot-layer">{hotspots}</div>
+      {text_overlays}
     </div>
   </section>
 "#,
@@ -116,6 +174,7 @@ fn render_main_slide(slide: &Slide, base64_img: &str, aspect_ratio: &str) -> Str
         img = base64_img,
         label = html_escape(&slide.label),
         hotspots = render_hotspots(&slide.hotspots),
+        text_overlays = render_text_overlays(&slide.text_overlays),
     )
 }
 
@@ -126,6 +185,7 @@ fn render_sub_slide(slide: &Slide, base64_img: &str, aspect_ratio: &str) -> Stri
     <div class="modal-content" onclick="event.stopPropagation()" style="position:relative;aspect-ratio:{ar};">
       <img src="data:image/png;base64,{img}" alt="{label}" />
       <div class="hotspot-layer">{hotspots}</div>
+      {text_overlays}
     </div>
   </div>
 "#,
@@ -134,7 +194,16 @@ fn render_sub_slide(slide: &Slide, base64_img: &str, aspect_ratio: &str) -> Stri
         img = base64_img,
         label = html_escape(&slide.label),
         hotspots = render_hotspots(&slide.hotspots),
+        text_overlays = render_text_overlays(&slide.text_overlays),
     )
+}
+
+fn hex_to_rgb(hex: &str) -> (u8, u8, u8) {
+    let hex = hex.trim_start_matches('#');
+    let r = u8::from_str_radix(&hex[0..2], 16).unwrap_or(99);
+    let g = u8::from_str_radix(&hex[2..4], 16).unwrap_or(200);
+    let b = u8::from_str_radix(&hex[4..6], 16).unwrap_or(255);
+    (r, g, b)
 }
 
 fn render_hotspots(hotspots: &[Hotspot]) -> String {
@@ -164,15 +233,66 @@ fn render_hotspots(hotspots: &[Hotspot]) -> String {
                 .map(|t| format!(" title=\"{}\"", html_escape(t)))
                 .unwrap_or_default();
 
+            let style_css = match &h.style {
+                Some(s) => {
+                    let (r, g, b) = hex_to_rgb(&s.color);
+                    format!(
+                        "border-color:{color};background:rgba({r},{g},{b},{opacity});border-radius:{radius}%;",
+                        color = s.color,
+                        r = r,
+                        g = g,
+                        b = b,
+                        opacity = s.opacity,
+                        radius = s.border_radius,
+                    )
+                }
+                None => String::new(),
+            };
+
+            let icon_html = match &h.style {
+                Some(s) => match &s.icon {
+                    Some(icon) if !icon.is_empty() => {
+                        format!(r#"<span class="hotspot-icon">{}</span>"#, html_escape(icon))
+                    }
+                    _ => String::new(),
+                },
+                None => String::new(),
+            };
+
             format!(
-                r#"      <div class="hotspot"{data_type}{title} style="left:{x}%;top:{y}%;width:{w}%;height:{h}%;" onclick="{onclick}"></div>"#,
+                r#"      <div class="hotspot"{data_type}{title} style="left:{x}%;top:{y}%;width:{w}%;height:{h}%;{extra_style}" onclick="{onclick}">{icon}</div>"#,
                 data_type = data_type,
                 title = title_attr,
                 x = h.x,
                 y = h.y,
                 w = h.w,
                 h = h.h,
+                extra_style = style_css,
                 onclick = onclick,
+                icon = icon_html,
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn render_text_overlays(overlays: &[TextOverlay]) -> String {
+    overlays
+        .iter()
+        .map(|o| {
+            format!(
+                r#"      <div class="text-overlay" style="left:{x}%;top:{y}%;width:{w}%;height:{h}%;font-size:{fs}px;font-weight:{fw};color:{color};background:{bg};text-align:{ta};border-radius:{br}px;">{text}</div>"#,
+                x = o.x,
+                y = o.y,
+                w = o.w,
+                h = o.h,
+                fs = o.font_size,
+                fw = html_escape(&o.font_weight),
+                color = html_escape(&o.color),
+                bg = html_escape(&o.background_color),
+                ta = html_escape(&o.text_align),
+                br = o.border_radius,
+                text = html_escape(&o.text),
             )
         })
         .collect::<Vec<_>>()

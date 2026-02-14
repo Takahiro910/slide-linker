@@ -254,6 +254,35 @@
       top: 12px;
       left: 12px;
     }
+
+    .analytics-download-btn {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(99, 140, 255, 0.15);
+      border: 1px solid rgba(99, 140, 255, 0.3);
+      color: #638cff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      z-index: 60;
+      transition: background 0.2s;
+    }
+    .analytics-download-btn:hover {
+      background: rgba(99, 140, 255, 0.3);
+    }
+
+    .text-overlay {
+      position: absolute;
+      pointer-events: none;
+      overflow: hidden;
+      word-wrap: break-word;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3;
+    }
   </style>
 </head>
 <body>
@@ -454,5 +483,6 @@
       }
     });
   </script>
+  {{ANALYTICS_SCRIPT}}
 </body>
 </html>

@@ -241,6 +241,22 @@ body {
   background: #5478e0;
 }
 
+.toolbar-analytics-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+  padding: 0 4px;
+}
+
+.toolbar-analytics-toggle input[type="checkbox"] {
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
 .toolbar-mode-btn {
   padding: 4px 16px;
   background: transparent;
@@ -970,4 +986,415 @@ body {
 .overlay-content {
   width: 90%;
   max-width: 1200px;
+}
+
+/* ========== Recent Projects ========== */
+.recent-projects {
+  width: 100%;
+  max-width: 400px;
+  margin-top: 16px;
+  text-align: left;
+}
+
+.recent-projects-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+.recent-projects-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.recent-project-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.recent-project-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.recent-project-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--color-border);
+}
+
+.recent-project-name {
+  font-size: 13px;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.recent-project-path {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-project-remove {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.recent-project-item:hover .recent-project-remove {
+  opacity: 1;
+}
+
+.recent-project-remove:hover {
+  color: var(--color-danger);
+}
+
+/* ========== Link Integrity Panel ========== */
+.link-integrity-panel {
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  max-height: 200px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.link-integrity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.link-integrity-header h3 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+}
+
+.link-integrity-count {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.link-integrity-empty {
+  padding: 12px 16px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.link-integrity-list {
+  list-style: none;
+  padding: 4px 8px;
+}
+
+.link-integrity-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 12px;
+}
+
+.link-integrity-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.link-integrity-slide {
+  font-weight: 600;
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.link-integrity-desc {
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ========== Toolbar Active State ========== */
+.toolbar-btn.active {
+  background: rgba(99, 140, 255, 0.15);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ========== Navigation Graph ========== */
+.navigation-graph-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.navigation-graph-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.navigation-graph-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.navigation-graph-container {
+  flex: 1;
+}
+
+.graph-slide-node {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px;
+  width: 144px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.graph-slide-node:hover {
+  border-color: var(--color-accent);
+}
+
+.graph-node-thumb {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #1a1e2e;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.graph-node-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.graph-node-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.graph-node-label {
+  font-size: 11px;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.graph-node-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 4px;
+}
+
+.graph-node-badge.main {
+  background: var(--color-main-badge);
+  color: #fff;
+}
+
+.graph-node-badge.sub {
+  background: var(--color-sub-badge);
+  color: #fff;
+}
+
+.graph-node-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #252a3a;
+}
+
+.navigation-graph-container .react-flow__controls button {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text);
+  fill: var(--color-text);
+}
+
+.navigation-graph-container .react-flow__background {
+  background: var(--color-bg);
+}
+
+/* ========== Hotspot Style Editor ========== */
+.hotspot-style-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.style-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.style-field label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.style-field input[type="color"] {
+  width: 32px;
+  height: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.style-field input[type="range"] {
+  flex: 1;
+  accent-color: var(--color-accent);
+}
+
+.style-field input[type="text"] {
+  flex: 1;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text);
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.style-field .style-value {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: monospace;
+  min-width: 36px;
+  text-align: right;
+}
+
+.hotspot-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  pointer-events: none;
+}
+
+/* ========== Text Overlay ========== */
+.text-overlay-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.text-overlay-item {
+  pointer-events: auto;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.text-overlay-item:hover {
+  border-color: rgba(168, 85, 247, 0.5);
+}
+
+.text-overlay-item.selected {
+  border-color: var(--color-sub-badge);
+  box-shadow: 0 0 0 1px var(--color-sub-badge);
+}
+
+/* ========== Toolbar Tool Selector ========== */
+.toolbar-tool-selector {
+  display: flex;
+  gap: 2px;
+  margin-left: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.toolbar-tool-btn {
+  padding: 4px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: color 0.2s, background 0.2s;
+}
+
+.toolbar-tool-btn:hover {
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.toolbar-tool-btn.active {
+  background: var(--color-sub-badge);
+  color: white;
+}
+
+/* ========== Analytics Toggle ========== */
+.toolbar-analytics-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.toolbar-analytics-toggle input[type="checkbox"] {
+  accent-color: var(--color-accent);
 }

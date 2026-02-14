@@ -6,15 +6,33 @@ import {
   createImageCacheSlice,
   type ImageCacheSlice,
 } from './slices/image-cache-slice'
+import {
+  createRecentProjectsSlice,
+  type RecentProjectsSlice,
+} from './slices/recent-projects-slice'
+import {
+  createClipboardSlice,
+  type ClipboardSlice,
+} from './slices/clipboard-slice'
+import {
+  createHistorySlice,
+  type HistorySlice,
+} from './slices/history-slice'
 
 export type AppStore = ProjectSlice &
   EditorSlice &
   PreviewSlice &
-  ImageCacheSlice
+  ImageCacheSlice &
+  RecentProjectsSlice &
+  ClipboardSlice &
+  HistorySlice
 
 export const useStore = create<AppStore>()((...args) => ({
   ...createProjectSlice(...args),
   ...createEditorSlice(...args),
   ...createPreviewSlice(...args),
   ...createImageCacheSlice(...args),
+  ...createRecentProjectsSlice(...args),
+  ...createClipboardSlice(...args),
+  ...createHistorySlice(...args),
 }))

@@ -1,4 +1,5 @@
 export type EditorMode = 'edit' | 'preview'
+export type EditorTool = 'hotspot' | 'text'
 export type SlideFilter = 'all' | 'main' | 'sub'
 export type DrawingState = 'idle' | 'drawing' | 'moving' | 'resizing'
 

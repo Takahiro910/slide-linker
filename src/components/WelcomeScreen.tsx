@@ -1,4 +1,5 @@
 import { useProjectActions } from '../hooks/useProjectActions'
+import { RecentProjectList } from './RecentProjectList'
 
 export function WelcomeScreen() {
   const { newProject, openProject } = useProjectActions()
@@ -65,6 +66,7 @@ export function WelcomeScreen() {
             <span className="welcome-btn-hint">.slproj.json</span>
           </button>
         </div>
+        <RecentProjectList />
         <p className="welcome-footer">
           ホットスポットで繋ぐ、非線形プレゼンテーション
         </p>
