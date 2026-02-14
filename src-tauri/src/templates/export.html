@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{TITLE}}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: #0c0f1a;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+
+    .main-slide {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px 0;
+    }
+
+    .slide-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: {{ASPECT_RATIO}};
+    }
+
+    .slide-container img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .hotspot-layer {
+      position: absolute;
+      inset: 0;
+    }
+
+    .hotspot {
+      position: absolute;
+      cursor: pointer;
+      border: 2px solid rgba(99, 200, 255, 0.3);
+      background: rgba(99, 200, 255, 0.05);
+      animation: areaPulse 3s ease-in-out infinite;
+    }
+
+    .hotspot[data-type="url"] {
+      border-color: rgba(255, 180, 50, 0.3);
+      background: rgba(255, 180, 50, 0.05);
+      animation-name: areaPulseUrl;
+    }
+
+    .hotspot:hover {
+      animation: none;
+      border-color: rgba(99, 200, 255, 0.6);
+      background: rgba(99, 200, 255, 0.15);
+      box-shadow: 0 0 16px rgba(99, 200, 255, 0.3);
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .hotspot[data-type="url"]:hover {
+      border-color: rgba(255, 180, 50, 0.6);
+      background: rgba(255, 180, 50, 0.15);
+      box-shadow: 0 0 16px rgba(255, 180, 50, 0.3);
+      cursor: alias;
+    }
+
+    @keyframes areaPulse {
+      0%, 100% { border-color: rgba(99,200,255,0.15); background: rgba(99,200,255,0.02); }
+      50%      { border-color: rgba(99,200,255,0.5);  background: rgba(99,200,255,0.08); }
+    }
+
+    @keyframes areaPulseUrl {
+      0%, 100% { border-color: rgba(255,180,50,0.15); background: rgba(255,180,50,0.02); }
+      50%      { border-color: rgba(255,180,50,0.5);  background: rgba(255,180,50,0.08); }
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      cursor: pointer;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      position: relative;
+      width: 90%;
+      max-width: 1200px;
+      aspect-ratio: {{ASPECT_RATIO}};
+      cursor: default;
+    }
+
+    .modal-content img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .modal-content .hotspot-layer {
+      position: absolute;
+      inset: 0;
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      background: rgba(255,255,255,0.1);
+      color: #e2e8f0;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      backdrop-filter: blur(8px);
+      transition: background 0.2s;
+    }
+
+    .back-btn:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .dot-nav {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(0,0,0,0.6);
+      border-radius: 20px;
+      backdrop-filter: blur(8px);
+      z-index: 50;
+    }
+
+    .dot-nav button {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255,255,255,0.3);
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .dot-nav button.active {
+      background: #638cff;
+      transform: scale(1.3);
+    }
+
+    .dot-nav button:hover {
+      background: rgba(255,255,255,0.6);
+    }
+
+    .hotspot[title]:hover::after {
+      content: attr(title);
+      position: absolute;
+      bottom: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.85);
+      color: #e2e8f0;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* ========== 全画面ボタン ========== */
+    .fullscreen-btn {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 60;
+      width: 40px;
+      height: 40px;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      color: #e2e8f0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      transition: background 0.2s, opacity 0.3s;
+      opacity: 0.6;
+    }
+
+    .fullscreen-btn:hover {
+      background: rgba(255,255,255,0.15);
+      opacity: 1;
+    }
+
+    .fullscreen-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* 全画面時: スライドを画面いっぱいに */
+    :fullscreen body,
+    :-webkit-full-screen body {
+      overflow-y: auto;
+      scroll-snap-type: y mandatory;
+    }
+
+    :fullscreen .main-slide,
+    :-webkit-full-screen .main-slide {
+      max-width: 100%;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      scroll-snap-align: start;
+    }
+
+    :fullscreen .main-slide .slide-container,
+    :-webkit-full-screen .main-slide .slide-container {
+      max-height: 100vh;
+      max-width: 100vw;
+      width: auto;
+      height: auto;
+    }
+
+    /* 全画面時: モーダルを大きく */
+    :fullscreen .modal-content,
+    :-webkit-full-screen .modal-content {
+      width: 96%;
+      max-width: none;
+      max-height: 94vh;
+    }
+
+    :fullscreen .back-btn,
+    :-webkit-full-screen .back-btn {
+      top: 12px;
+      left: 12px;
+    }
+  </style>
+</head>
+<body>
+  {{MAIN_SLIDES}}
+  {{SUB_SLIDES}}
+
+  <nav class="dot-nav" id="dotNav">
+    {{DOT_NAV}}
+  </nav>
+
+  <button class="fullscreen-btn" id="fullscreenBtn" title="全画面表示 (F11)">
+    <svg id="fsIconExpand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+      <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+      <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+      <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
+    </svg>
+    <svg id="fsIconShrink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+      <path d="M4 14h4v4"/>
+      <path d="M20 10h-4V6"/>
+      <path d="M14 10l7-7"/>
+      <path d="M3 21l7-7"/>
+    </svg>
+  </button>
+
+  <script>
+    var navStack = [];
+    var currentMainIndex = 0;
+    var wasFullscreenBeforeEsc = false;
+
+    function openSlide(id) {
+      var modal = document.getElementById('modal-' + id);
+      if (!modal) return;
+      navStack.push(id);
+      modal.classList.add('active');
+      modal.style.zIndex = String(100 + navStack.length);
+    }
+
+    function openUrl(url) {
+      window.open(url, '_blank', 'noopener');
+    }
+
+    function goBack() {
+      if (navStack.length === 0) return;
+      var id = navStack.pop();
+      var modal = document.getElementById('modal-' + id);
+      if (modal) modal.classList.remove('active');
+    }
+
+    // モーダル背景クリックで閉じる
+    function handleOverlayClick(e) {
+      if (e.target.classList.contains('modal-overlay')) {
+        goBack();
+      }
+    }
+
+    // 全モーダルにクリックイベント登録
+    document.addEventListener('click', function(e) {
+      var overlay = e.target.closest('.modal-overlay');
+      if (overlay && overlay.classList.contains('active') && e.target === overlay) {
+        goBack();
+      }
+    });
+
+    // ========== ドットナビ & スライド管理 ==========
+    var mainSlides = document.querySelectorAll('.main-slide');
+    var dotButtons = document.querySelectorAll('.dot-nav button');
+
+    dotButtons.forEach(function(btn, i) {
+      btn.addEventListener('click', function() {
+        scrollToSlide(i);
+      });
+    });
+
+    function scrollToSlide(index) {
+      if (index < 0 || index >= mainSlides.length) return;
+      mainSlides[index].scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // IntersectionObserver for dot nav & currentMainIndex tracking
+    var flashObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          var idx = Array.from(mainSlides).indexOf(entry.target);
+          if (idx >= 0) {
+            currentMainIndex = idx;
+            dotButtons.forEach(function(btn, i) {
+              btn.classList.toggle('active', i === idx);
+            });
+          }
+        }
+      });
+    }, { threshold: 0.3 });
+
+    mainSlides.forEach(function(slide) {
+      flashObserver.observe(slide);
+    });
+
+    // ========== 全画面 ==========
+    var fsBtn = document.getElementById('fullscreenBtn');
+    var iconExpand = document.getElementById('fsIconExpand');
+    var iconShrink = document.getElementById('fsIconShrink');
+
+    function isFullscreen() {
+      return !!(document.fullscreenElement || document.webkitFullscreenElement);
+    }
+
+    function enterFullscreen() {
+      var el = document.documentElement;
+      (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+    }
+
+    function exitFullscreen() {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    }
+
+    function toggleFullscreen() {
+      if (isFullscreen()) {
+        exitFullscreen();
+      } else {
+        enterFullscreen();
+      }
+    }
+
+    function updateFsIcon() {
+      var fs = isFullscreen();
+      iconExpand.style.display = fs ? 'none' : '';
+      iconShrink.style.display = fs ? '' : 'none';
+
+      // ESC で全画面が解除された場合: モーダルが開いていたら閉じて全画面に戻る
+      if (!fs && wasFullscreenBeforeEsc && navStack.length > 0) {
+        wasFullscreenBeforeEsc = false;
+        goBack();
+        // 少し待ってから全画面に再突入
+        setTimeout(function() { enterFullscreen(); }, 50);
+        return;
+      }
+      wasFullscreenBeforeEsc = false;
+    }
+
+    fsBtn.addEventListener('click', toggleFullscreen);
+    document.addEventListener('fullscreenchange', updateFsIcon);
+    document.addEventListener('webkitfullscreenchange', updateFsIcon);
+
+    // キーボード操作
+    document.addEventListener('keydown', function(e) {
+      // ESC: モーダルが開いている全画面中 → ブラウザが先に全画面解除するので
+      // wasFullscreenBeforeEsc フラグで fullscreenchange 内で対処
+      if (e.key === 'Escape') {
+        if (isFullscreen() && navStack.length > 0) {
+          // ブラウザが全画面を解除する → fullscreenchange で goBack + 再全画面
+          wasFullscreenBeforeEsc = true;
+          return;
+        }
+        if (navStack.length > 0) {
+          goBack();
+          e.preventDefault();
+          return;
+        }
+      }
+
+      // F11: 全画面トグル
+      if (e.key === 'F11') {
+        e.preventDefault();
+        toggleFullscreen();
+        return;
+      }
+
+      // モーダルが開いているときはページ送りしない
+      if (navStack.length > 0) return;
+
+      // ← / PgUp: 前のスライドへ
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        scrollToSlide(currentMainIndex - 1);
+        return;
+      }
+
+      // → / PgDn: 次のスライドへ
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        scrollToSlide(currentMainIndex + 1);
+        return;
+      }
+
+      // Home: 最初のスライドへ
+      if (e.key === 'Home') {
+        e.preventDefault();
+        scrollToSlide(0);
+        return;
+      }
+
+      // End: 最後のスライドへ
+      if (e.key === 'End') {
+        e.preventDefault();
+        scrollToSlide(mainSlides.length - 1);
+        return;
+      }
+    });
+  </script>
+</body>
+</html>
