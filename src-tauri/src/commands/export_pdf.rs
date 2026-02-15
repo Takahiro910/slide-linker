@@ -17,9 +17,10 @@ pub async fn export_pdf(
     project: Project,
     output_path: String,
 ) -> Result<(), String> {
-    // Collect all slides in order: main first, then sub
-    let main_slides: Vec<&Slide> = project.slides.iter().filter(|s| s.is_main).collect();
-    let sub_slides: Vec<&Slide> = project.slides.iter().filter(|s| !s.is_main).collect();
+    // Filter active (enabled) slides, then order: main first, then sub
+    let active_slides: Vec<&Slide> = project.slides.iter().filter(|s| s.enabled).collect();
+    let main_slides: Vec<&Slide> = active_slides.iter().filter(|s| s.is_main).copied().collect();
+    let sub_slides: Vec<&Slide> = active_slides.iter().filter(|s| !s.is_main).copied().collect();
     let mut ordered_slides: Vec<&Slide> = Vec::with_capacity(project.slides.len());
     ordered_slides.extend(&main_slides);
     ordered_slides.extend(&sub_slides);

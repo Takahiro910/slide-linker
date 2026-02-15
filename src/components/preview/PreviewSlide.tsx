@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useStore } from '../../store'
 import { SlideWrapper } from '../editor/SlideWrapper'
 import { HotspotLayer } from '../editor/HotspotLayer'
+import { GraphLinkChips } from './GraphLinkChips'
 import type { Slide } from '../../types'
 
 interface PreviewSlideProps {
@@ -10,6 +11,7 @@ interface PreviewSlideProps {
 }
 
 export function PreviewSlide({ slide, aspectRatio }: PreviewSlideProps) {
+  const project = useStore((s) => s.project)
   const imageCache = useStore((s) => s.imageCache)
   const pushNavigation = useStore((s) => s.pushNavigation)
   const imageSrc = imageCache[slide.image_path]
@@ -53,6 +55,11 @@ export function PreviewSlide({ slide, aspectRatio }: PreviewSlideProps) {
           onHotspotClick={handleHotspotClick}
         />
       </SlideWrapper>
+      <GraphLinkChips
+        slide={slide}
+        allSlides={project?.slides ?? []}
+        onNavigate={pushNavigation}
+      />
     </div>
   )
 }

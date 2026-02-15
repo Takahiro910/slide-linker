@@ -16,6 +16,7 @@ export function useTextOverlayDrawing() {
   const selectedSlideId = useStore((s) => s.selectedSlideId)
   const addTextOverlay = useStore((s) => s.addTextOverlay)
   const selectTextOverlay = useStore((s) => s.selectTextOverlay)
+  const setEditorTool = useStore((s) => s.setEditorTool)
 
   const [drawRect, setDrawRect] = useState<DrawRect | null>(null)
   const originRef = useRef<{ x: number; y: number } | null>(null)
@@ -83,11 +84,12 @@ export function useTextOverlayDrawing() {
       }
       addTextOverlay(selectedSlideId, overlay)
       selectTextOverlay(overlay.id)
+      setEditorTool('select')
     }
 
     originRef.current = null
     setDrawRect(null)
-  }, [drawRect, selectedSlideId, addTextOverlay, selectTextOverlay])
+  }, [drawRect, selectedSlideId, addTextOverlay, selectTextOverlay, setEditorTool])
 
   return {
     layerRef,

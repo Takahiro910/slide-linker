@@ -12,12 +12,13 @@ export function SlideTargetPicker({
 }: SlideTargetPickerProps) {
   const slides = useStore((s) => s.project?.slides ?? [])
   const imageCache = useStore((s) => s.imageCache)
+  const enabledSlides = slides.filter((s) => s.enabled !== false)
 
   return (
     <div className="slide-target-picker">
       <label>リンク先</label>
       <div className="slide-target-grid">
-        {slides.map((slide) => (
+        {enabledSlides.map((slide) => (
           <div
             key={slide.id}
             className={clsx(

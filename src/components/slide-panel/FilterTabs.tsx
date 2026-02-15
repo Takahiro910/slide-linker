@@ -10,6 +10,7 @@ const tabs: { value: SlideFilter; label: string }[] = [
   { value: 'all', label: 'すべて' },
   { value: 'main', label: 'メイン' },
   { value: 'sub', label: 'サブ' },
+  { value: 'disabled', label: '無効' },
 ]
 
 export function FilterTabs({ filter, onChange }: FilterTabsProps) {

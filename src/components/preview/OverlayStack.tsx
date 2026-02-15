@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useStore } from '../../store'
 import { SlideWrapper } from '../editor/SlideWrapper'
 import { HotspotLayer } from '../editor/HotspotLayer'
+import { GraphLinkChips } from './GraphLinkChips'
 import type { Slide } from '../../types'
 
 interface OverlayStackProps {
@@ -72,6 +73,11 @@ export function OverlayStack({ slides, aspectRatio }: OverlayStackProps) {
                   }
                 />
               </SlideWrapper>
+              <GraphLinkChips
+                slide={slide}
+                allSlides={slides}
+                onNavigate={pushNavigation}
+              />
             </div>
           </div>
         )

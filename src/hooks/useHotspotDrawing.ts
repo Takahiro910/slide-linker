@@ -16,6 +16,7 @@ export function useHotspotDrawing() {
   const selectedSlideId = useStore((s) => s.selectedSlideId)
   const addHotspot = useStore((s) => s.addHotspot)
   const selectHotspot = useStore((s) => s.selectHotspot)
+  const setEditorTool = useStore((s) => s.setEditorTool)
 
   const [drawRect, setDrawRect] = useState<DrawRect | null>(null)
   const originRef = useRef<{ x: number; y: number } | null>(null)
@@ -79,11 +80,12 @@ export function useHotspotDrawing() {
       }
       addHotspot(selectedSlideId, hotspot)
       selectHotspot(hotspot.id)
+      setEditorTool('select')
     }
 
     originRef.current = null
     setDrawRect(null)
-  }, [drawRect, selectedSlideId, addHotspot, selectHotspot])
+  }, [drawRect, selectedSlideId, addHotspot, selectHotspot, setEditorTool])
 
   return {
     layerRef,

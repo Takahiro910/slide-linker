@@ -3,6 +3,7 @@ export interface Project {
   created_at: string
   updated_at: string
   source_file: string
+  source_files?: string[]
   aspect_ratio: AspectRatio
   slides: Slide[]
   enable_analytics?: boolean
@@ -15,9 +16,12 @@ export interface Slide {
   index: number
   label: string
   is_main: boolean
+  enabled: boolean
   image_path: string
   hotspots: Hotspot[]
   text_overlays?: TextOverlay[]
+  graph_links?: string[]
+  source_file?: string
 }
 
 export interface HotspotStyle {
@@ -29,6 +33,7 @@ export interface HotspotStyle {
 
 export interface Hotspot {
   id: string
+  name?: string
   x: number
   y: number
   w: number

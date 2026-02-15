@@ -36,7 +36,7 @@ export interface EditorSlice {
 export const createEditorSlice: StateCreator<EditorSlice> = (set) => ({
   selectedSlideId: null,
   selectedHotspotId: null,
-  editorTool: 'hotspot',
+  editorTool: 'select',
   selectedTextOverlayId: null,
   editorMode: 'edit',
   slideFilter: 'all',

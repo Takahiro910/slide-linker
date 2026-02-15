@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useStore } from '../../store'
 import type { TextOverlay } from '../../types'
 
@@ -11,8 +12,39 @@ export function TextOverlayDetail({ overlay, slideId }: TextOverlayDetailProps) 
   const removeTextOverlay = useStore((s) => s.removeTextOverlay)
   const selectTextOverlay = useStore((s) => s.selectTextOverlay)
 
+  // Local state for text input to avoid pushHistory on every keystroke
+  const [localText, setLocalText] = useState(overlay.text)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Sync local state when a different overlay is selected
+  useEffect(() => {
+    setLocalText(overlay.text)
+  }, [overlay.id])
+
+  const flushTextToStore = useCallback(
+    (text: string) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = null
+      updateTextOverlay(slideId, overlay.id, { text })
+    },
+    [slideId, overlay.id, updateTextOverlay],
+  )
+
+  // Flush on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+    }
+  }, [])
+
   function handleTextChange(text: string) {
-    updateTextOverlay(slideId, overlay.id, { text })
+    setLocalText(text)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      flushTextToStore(text)
+    }, 400)
   }
 
   function handleFontSizeChange(fontSize: number) {
@@ -52,8 +84,9 @@ export function TextOverlayDetail({ overlay, slideId }: TextOverlayDetailProps) 
       <div className="hotspot-field">
         <label>{'\u30c6\u30ad\u30b9\u30c8\u5185\u5bb9'}</label>
         <textarea
-          value={overlay.text}
+          value={localText}
           onChange={(e) => handleTextChange(e.target.value)}
+          onBlur={() => flushTextToStore(localText)}
           className="hotspot-input"
           rows={3}
           style={{ resize: 'vertical' }}

@@ -7,11 +7,18 @@ export function SlideList() {
   const selectedSlideId = useStore((s) => s.selectedSlideId)
   const selectSlide = useStore((s) => s.selectSlide)
 
-  const filteredSlides = slides.filter((slide) => {
-    if (slideFilter === 'main') return slide.is_main
-    if (slideFilter === 'sub') return !slide.is_main
-    return true
-  })
+  const filteredSlides = slides
+    .filter((slide) => {
+      if (slideFilter === 'main') return slide.is_main
+      if (slideFilter === 'sub') return !slide.is_main
+      if (slideFilter === 'disabled') return slide.enabled === false
+      return true
+    })
+    .sort((a, b) => {
+      const ae = a.enabled !== false ? 0 : 1
+      const be = b.enabled !== false ? 0 : 1
+      return ae - be
+    })
 
   return (
     <div className="slide-list">

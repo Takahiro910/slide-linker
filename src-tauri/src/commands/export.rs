@@ -63,8 +63,9 @@ pub async fn export_html(
 ) -> Result<(), String> {
     let template = include_str!("../templates/export.html");
 
-    let main_slides: Vec<&Slide> = project.slides.iter().filter(|s| s.is_main).collect();
-    let all_slides: Vec<&Slide> = project.slides.iter().collect();
+    let active_slides: Vec<&Slide> = project.slides.iter().filter(|s| s.enabled).collect();
+    let main_slides: Vec<&Slide> = active_slides.iter().filter(|s| s.is_main).copied().collect();
+    let all_slides: Vec<&Slide> = active_slides.clone();
     let total = all_slides.len();
 
     let aspect_ratio_css = project.aspect_ratio.replace(":", "/");
@@ -72,7 +73,7 @@ pub async fn export_html(
     let mut main_html = String::new();
     for (i, slide) in main_slides.iter().enumerate() {
         let base64_img = read_and_encode_image(&project_dir, &slide.image_path).await?;
-        main_html.push_str(&render_main_slide(slide, &base64_img, &aspect_ratio_css));
+        main_html.push_str(&render_main_slide(slide, &base64_img, &aspect_ratio_css, &all_slides));
 
         app.emit(
             "export-progress",
@@ -92,7 +93,7 @@ pub async fn export_html(
         }
         if !slide.is_main {
             let base64_img = read_and_encode_image(&project_dir, &slide.image_path).await?;
-            sub_html.push_str(&render_sub_slide(slide, &base64_img, &aspect_ratio_css));
+            sub_html.push_str(&render_sub_slide(slide, &base64_img, &aspect_ratio_css, &all_slides));
             processed += 1;
             app.emit(
                 "export-progress",
@@ -105,13 +106,17 @@ pub async fn export_html(
         }
     }
 
-    // Also render main slides as modal targets (main→main links)
+    // Also render main slides as modal targets (main→main links or graph_links targets)
     for slide in &main_slides {
-        if !slide.hotspots.is_empty() || all_slides.iter().any(|s| {
+        let is_hotspot_target = all_slides.iter().any(|s| {
             s.hotspots.iter().any(|h| h.target_id.as_deref() == Some(&slide.id))
-        }) {
+        });
+        let is_graph_link_target = all_slides.iter().any(|s| {
+            s.graph_links.iter().any(|gl| gl == &slide.id)
+        });
+        if !slide.hotspots.is_empty() || is_hotspot_target || is_graph_link_target || !slide.graph_links.is_empty() {
             let base64_img = read_and_encode_image(&project_dir, &slide.image_path).await?;
-            sub_html.push_str(&render_sub_slide(slide, &base64_img, &aspect_ratio_css));
+            sub_html.push_str(&render_sub_slide(slide, &base64_img, &aspect_ratio_css, &all_slides));
         }
     }
 
@@ -159,7 +164,7 @@ async fn read_and_encode_image(project_dir: &str, image_path: &str) -> Result<St
     Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
 }
 
-fn render_main_slide(slide: &Slide, base64_img: &str, aspect_ratio: &str) -> String {
+fn render_main_slide(slide: &Slide, base64_img: &str, aspect_ratio: &str, all_slides: &[&Slide]) -> String {
     format!(
         r#"  <section class="main-slide" id="{id}">
     <div class="slide-container" style="position:relative;width:100%;aspect-ratio:{ar};">
@@ -167,6 +172,7 @@ fn render_main_slide(slide: &Slide, base64_img: &str, aspect_ratio: &str) -> Str
       <div class="hotspot-layer">{hotspots}</div>
       {text_overlays}
     </div>
+    {graph_chips}
   </section>
 "#,
         id = slide.id,
@@ -175,10 +181,11 @@ fn render_main_slide(slide: &Slide, base64_img: &str, aspect_ratio: &str) -> Str
         label = html_escape(&slide.label),
         hotspots = render_hotspots(&slide.hotspots),
         text_overlays = render_text_overlays(&slide.text_overlays),
+        graph_chips = render_graph_link_chips(&slide.graph_links, all_slides),
     )
 }
 
-fn render_sub_slide(slide: &Slide, base64_img: &str, aspect_ratio: &str) -> String {
+fn render_sub_slide(slide: &Slide, base64_img: &str, aspect_ratio: &str, all_slides: &[&Slide]) -> String {
     format!(
         r#"  <div class="modal-overlay" id="modal-{id}">
     <button class="back-btn" onclick="event.stopPropagation();goBack()">&#8592; 戻る</button>
@@ -187,6 +194,7 @@ fn render_sub_slide(slide: &Slide, base64_img: &str, aspect_ratio: &str) -> Stri
       <div class="hotspot-layer">{hotspots}</div>
       {text_overlays}
     </div>
+    {graph_chips}
   </div>
 "#,
         id = slide.id,
@@ -195,6 +203,7 @@ fn render_sub_slide(slide: &Slide, base64_img: &str, aspect_ratio: &str) -> Stri
         label = html_escape(&slide.label),
         hotspots = render_hotspots(&slide.hotspots),
         text_overlays = render_text_overlays(&slide.text_overlays),
+        graph_chips = render_graph_link_chips(&slide.graph_links, all_slides),
     )
 }
 
@@ -297,6 +306,33 @@ fn render_text_overlays(overlays: &[TextOverlay]) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+fn render_graph_link_chips(graph_links: &[String], all_slides: &[&Slide]) -> String {
+    if graph_links.is_empty() {
+        return String::new();
+    }
+
+    let chips: Vec<String> = graph_links
+        .iter()
+        .filter_map(|target_id| {
+            let target = all_slides.iter().find(|s| s.id == *target_id && s.enabled)?;
+            Some(format!(
+                r#"<button class="graph-link-chip" onclick="openSlide('{id}')">{label}</button>"#,
+                id = html_escape(target_id),
+                label = html_escape(&target.label),
+            ))
+        })
+        .collect();
+
+    if chips.is_empty() {
+        return String::new();
+    }
+
+    format!(
+        r#"    <div class="graph-link-chips">{}</div>"#,
+        chips.join("\n      ")
+    )
 }
 
 fn html_escape(s: &str) -> String {

@@ -19,8 +19,14 @@ export function Toolbar() {
   const redo = useStore((s) => s.redo)
   const setProject = useStore((s) => s.setProject)
   const markDirty = useStore((s) => s.markDirty)
-  const { saveProject, saveProjectAs, exportHtml, exportPdf, closeProject } =
-    useProjectActions()
+  const {
+    saveProject,
+    saveProjectAs,
+    exportHtml,
+    exportPdf,
+    importAdditionalSlides,
+    closeProject,
+  } = useProjectActions()
 
   const handleToggleAnalytics = () => {
     if (!project) return
@@ -78,6 +84,13 @@ export function Toolbar() {
         {editorMode === 'edit' && (
           <div className="toolbar-tool-selector">
             <button
+              className={`toolbar-tool-btn${editorTool === 'select' ? ' active select-tool' : ''}`}
+              onClick={() => setEditorTool('select' as EditorTool)}
+              title={'\u9078\u629e'}
+            >
+              &#9654;
+            </button>
+            <button
               className={`toolbar-tool-btn${editorTool === 'hotspot' ? ' active' : ''}`}
               onClick={() => setEditorTool('hotspot' as EditorTool)}
               title={'\u30db\u30c3\u30c8\u30b9\u30dd\u30c3\u30c8'}
@@ -114,6 +127,13 @@ export function Toolbar() {
         </button>
         <button className="toolbar-btn" onClick={saveProjectAs}>
           Save As
+        </button>
+        <button
+          className="toolbar-btn"
+          onClick={importAdditionalSlides}
+          title="追加インポート"
+        >
+          追加
         </button>
         <label
           className="toolbar-analytics-toggle"

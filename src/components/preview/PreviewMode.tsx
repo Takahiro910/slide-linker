@@ -12,7 +12,7 @@ export function PreviewMode() {
   const clearNavigation = useStore((s) => s.clearNavigation)
 
   const mainSlides = useMemo(
-    () => project?.slides.filter((s) => s.is_main) ?? [],
+    () => project?.slides.filter((s) => s.is_main && s.enabled !== false) ?? [],
     [project],
   )
 

@@ -20,6 +20,9 @@ export interface ProjectSlice {
 
   batchSetSlideMain: (slideIds: string[], isMain: boolean) => void
 
+  toggleSlideEnabled: (slideId: string) => void
+  batchSetSlideEnabled: (slideIds: string[], enabled: boolean) => void
+
   addHotspot: (slideId: string, hotspot: Hotspot) => void
   removeHotspot: (slideId: string, hotspotId: string) => void
   updateHotspot: (
@@ -27,6 +30,11 @@ export interface ProjectSlice {
     hotspotId: string,
     updates: Partial<Hotspot>,
   ) => void
+
+  addGraphLink: (slideId: string, targetId: string) => void
+  removeGraphLink: (slideId: string, targetId: string) => void
+  removeAllLinksFromSlide: (slideId: string) => void
+  mergeSlides: (newSlides: Slide[]) => void
 
   addTextOverlay: (slideId: string, overlay: TextOverlay) => void
   removeTextOverlay: (slideId: string, overlayId: string) => void
@@ -148,6 +156,48 @@ export const createProjectSlice: StateCreator<ProjectSlice> = (set, get) => ({
     })
   },
 
+  toggleSlideEnabled: (slideId) => {
+    const currentProject = (get() as any).project
+    if (currentProject) {
+      ;(get() as any).pushHistory(currentProject)
+    }
+    set((state) => {
+      if (!state.project) return state
+      return {
+        project: {
+          ...state.project,
+          slides: state.project.slides.map((slide) =>
+            slide.id === slideId
+              ? { ...slide, enabled: !(slide.enabled !== false) }
+              : slide,
+          ),
+        },
+        isDirty: true,
+      }
+    })
+  },
+
+  batchSetSlideEnabled: (slideIds, enabled) => {
+    const currentProject = (get() as any).project
+    if (currentProject) {
+      ;(get() as any).pushHistory(currentProject)
+    }
+    set((state) => {
+      if (!state.project) return state
+      return {
+        project: {
+          ...state.project,
+          slides: state.project.slides.map((slide) =>
+            slideIds.includes(slide.id)
+              ? { ...slide, enabled }
+              : slide,
+          ),
+        },
+        isDirty: true,
+      }
+    })
+  },
+
   addHotspot: (slideId, hotspot) => {
     const currentProject = (get() as any).project
     if (currentProject) {
@@ -213,6 +263,101 @@ export const createProjectSlice: StateCreator<ProjectSlice> = (set, get) => ({
                 }
               : slide,
           ),
+        },
+        isDirty: true,
+      }
+    })
+  },
+
+  addGraphLink: (slideId, targetId) => {
+    const currentProject = (get() as any).project
+    if (currentProject) {
+      ;(get() as any).pushHistory(currentProject)
+    }
+    set((state) => {
+      if (!state.project) return state
+      return {
+        project: {
+          ...state.project,
+          slides: state.project.slides.map((slide) =>
+            slide.id === slideId
+              ? {
+                  ...slide,
+                  graph_links: (slide.graph_links ?? []).includes(targetId)
+                    ? slide.graph_links ?? []
+                    : [...(slide.graph_links ?? []), targetId],
+                }
+              : slide,
+          ),
+        },
+        isDirty: true,
+      }
+    })
+  },
+
+  removeGraphLink: (slideId, targetId) => {
+    const currentProject = (get() as any).project
+    if (currentProject) {
+      ;(get() as any).pushHistory(currentProject)
+    }
+    set((state) => {
+      if (!state.project) return state
+      return {
+        project: {
+          ...state.project,
+          slides: state.project.slides.map((slide) =>
+            slide.id === slideId
+              ? {
+                  ...slide,
+                  graph_links: (slide.graph_links ?? []).filter(
+                    (id) => id !== targetId,
+                  ),
+                }
+              : slide,
+          ),
+        },
+        isDirty: true,
+      }
+    })
+  },
+
+  removeAllLinksFromSlide: (slideId) => {
+    const currentProject = (get() as any).project
+    if (currentProject) {
+      ;(get() as any).pushHistory(currentProject)
+    }
+    set((state) => {
+      if (!state.project) return state
+      return {
+        project: {
+          ...state.project,
+          slides: state.project.slides.map((slide) =>
+            slide.id === slideId
+              ? {
+                  ...slide,
+                  hotspots: [],
+                  graph_links: [],
+                }
+              : slide,
+          ),
+        },
+        isDirty: true,
+      }
+    })
+  },
+
+  mergeSlides: (newSlides) => {
+    const currentProject = (get() as any).project
+    if (currentProject) {
+      ;(get() as any).pushHistory(currentProject)
+    }
+    set((state) => {
+      if (!state.project) return state
+      return {
+        project: {
+          ...state.project,
+          slides: [...state.project.slides, ...newSlides],
+          updated_at: new Date().toISOString(),
         },
         isDirty: true,
       }

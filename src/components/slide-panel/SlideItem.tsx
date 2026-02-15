@@ -11,12 +11,14 @@ interface SlideItemProps {
 export function SlideItem({ slide, isSelected, onSelect }: SlideItemProps) {
   const imageCache = useStore((s) => s.imageCache)
   const toggleSlideMain = useStore((s) => s.toggleSlideMain)
+  const toggleSlideEnabled = useStore((s) => s.toggleSlideEnabled)
 
   const thumbSrc = imageCache[slide.image_path]
+  const isEnabled = slide.enabled !== false
 
   return (
     <div
-      className={clsx('slide-item', isSelected && 'selected')}
+      className={clsx('slide-item', isSelected && 'selected', !isEnabled && 'disabled')}
       onClick={onSelect}
     >
       <div className="slide-item-thumb">
@@ -42,6 +44,16 @@ export function SlideItem({ slide, isSelected, onSelect }: SlideItemProps) {
           </span>
         </div>
       </div>
+      <button
+        className={clsx('slide-visibility-btn', !isEnabled && 'off')}
+        onClick={(e) => {
+          e.stopPropagation()
+          toggleSlideEnabled(slide.id)
+        }}
+        title={isEnabled ? 'スライドを無効化' : 'スライドを有効化'}
+      >
+        {isEnabled ? '\u{1F441}' : '\u25CB'}
+      </button>
       <button
         className="slide-toggle-btn"
         onClick={(e) => {

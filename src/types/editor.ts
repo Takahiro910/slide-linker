@@ -1,6 +1,6 @@
 export type EditorMode = 'edit' | 'preview'
-export type EditorTool = 'hotspot' | 'text'
-export type SlideFilter = 'all' | 'main' | 'sub'
+export type EditorTool = 'select' | 'hotspot' | 'text'
+export type SlideFilter = 'all' | 'main' | 'sub' | 'disabled'
 export type DrawingState = 'idle' | 'drawing' | 'moving' | 'resizing'
 
 export interface DragOrigin {
