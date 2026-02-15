@@ -1,6 +1,8 @@
 import { useStore } from '../../store'
 import { HotspotList } from './HotspotList'
 import { HotspotDetail } from './HotspotDetail'
+import { GraphLinkList } from './GraphLinkList'
+import { TextOverlayList } from './TextOverlayList'
 import { TextOverlayDetail } from './TextOverlayDetail'
 
 export function HotspotSettings() {
@@ -46,12 +48,31 @@ export function HotspotSettings() {
         />
       )}
 
+      {(currentSlide.graph_links ?? []).length > 0 && selectedSlideId && (
+        <>
+          <div className="hotspot-settings-header" style={{ marginTop: 8 }}>
+            <h3>グラフリンク</h3>
+            <span className="hotspot-count">
+              {(currentSlide.graph_links ?? []).length}
+            </span>
+          </div>
+          <GraphLinkList
+            slideId={selectedSlideId}
+            graphLinks={currentSlide.graph_links ?? []}
+          />
+        </>
+      )}
+
       <div className="hotspot-settings-header" style={{ marginTop: 8 }}>
         <h3>{'\u30c6\u30ad\u30b9\u30c8'}</h3>
         <span className="hotspot-count">
           {textOverlayCount}
         </span>
       </div>
+      <TextOverlayList
+        overlays={currentSlide.text_overlays ?? []}
+        selectedOverlayId={selectedTextOverlayId}
+      />
       {currentTextOverlay && selectedSlideId && (
         <TextOverlayDetail
           overlay={currentTextOverlay}

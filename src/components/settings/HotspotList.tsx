@@ -39,7 +39,7 @@ export function HotspotList({
             )}
           />
           <span className="hotspot-list-label">
-            {hotspot.tooltip || hotspot.id}
+            {hotspot.name || hotspot.tooltip || hotspot.id}
           </span>
           <span className="hotspot-list-target">
             {hotspot.link_type === 'url'

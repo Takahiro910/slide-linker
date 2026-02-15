@@ -6,6 +6,8 @@ pub struct Project {
     pub created_at: String,
     pub updated_at: String,
     pub source_file: String,
+    #[serde(default)]
+    pub source_files: Vec<String>,
     pub aspect_ratio: String,
     pub slides: Vec<Slide>,
     #[serde(default)]
@@ -18,10 +20,20 @@ pub struct Slide {
     pub index: usize,
     pub label: String,
     pub is_main: bool,
+    #[serde(default = "default_true")]
+    pub enabled: bool,
     pub image_path: String,
     pub hotspots: Vec<Hotspot>,
     #[serde(default)]
     pub text_overlays: Vec<TextOverlay>,
+    #[serde(default)]
+    pub graph_links: Vec<String>,
+    #[serde(default)]
+    pub source_file: Option<String>,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,6 +63,8 @@ pub struct HotspotStyle {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Hotspot {
     pub id: String,
+    #[serde(default)]
+    pub name: Option<String>,
     pub x: f64,
     pub y: f64,
     pub w: f64,

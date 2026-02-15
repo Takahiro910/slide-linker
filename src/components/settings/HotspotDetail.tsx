@@ -31,6 +31,10 @@ export function HotspotDetail({ hotspot, slideId }: HotspotDetailProps) {
     updateHotspot(slideId, hotspot.id, { url })
   }
 
+  function handleNameChange(name: string) {
+    updateHotspot(slideId, hotspot.id, { name: name || undefined })
+  }
+
   function handleTooltipChange(tooltip: string) {
     updateHotspot(slideId, hotspot.id, { tooltip: tooltip || undefined })
   }
@@ -47,6 +51,17 @@ export function HotspotDetail({ hotspot, slideId }: HotspotDetailProps) {
   return (
     <div className="hotspot-detail">
       <h4>ホットスポット設定</h4>
+
+      <div className="hotspot-field">
+        <label>名前</label>
+        <input
+          type="text"
+          value={hotspot.name ?? ''}
+          onChange={(e) => handleNameChange(e.target.value)}
+          placeholder="ホットスポットの名前（任意）"
+          className="hotspot-input"
+        />
+      </div>
 
       <LinkTypeSelector
         linkType={hotspot.link_type}

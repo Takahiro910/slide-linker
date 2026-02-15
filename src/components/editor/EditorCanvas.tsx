@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from '../../store'
 import { SlideWrapper } from './SlideWrapper'
 import { HotspotLayer } from './HotspotLayer'
@@ -20,6 +20,39 @@ export function EditorCanvas() {
 
   const currentSlide = project?.slides.find((s) => s.id === selectedSlideId)
   const imageSrc = currentSlide ? imageCache[currentSlide.image_path] : undefined
+
+  const [zoomLevel, setZoomLevel] = useState(100)
+
+  const handleZoomIn = useCallback(() => {
+    setZoomLevel((prev) => Math.min(200, prev + 10))
+  }, [])
+
+  const handleZoomOut = useCallback(() => {
+    setZoomLevel((prev) => Math.max(30, prev - 10))
+  }, [])
+
+  const handleZoomReset = useCallback(() => {
+    setZoomLevel(100)
+  }, [])
+
+  const canvasRef = useRef<HTMLDivElement>(null)
+
+  // Native wheel listener with { passive: false } so preventDefault works
+  // to block the browser's default Ctrl+Scroll page zoom
+  useEffect(() => {
+    const el = canvasRef.current
+    if (!el) return
+
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return
+      e.preventDefault()
+      const delta = e.deltaY < 0 ? 10 : -10
+      setZoomLevel((prev) => Math.max(30, Math.min(200, prev + delta)))
+    }
+
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
 
   const hotspotDrawing = useHotspotDrawing()
   const textOverlayDrawing = useTextOverlayDrawing()
@@ -59,6 +92,10 @@ export function EditorCanvas() {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      // Don't intercept keys when typing in form inputs
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+
       if (e.key === 'Delete' && selectedSlideId) {
         if (selectedHotspotId) {
           removeHotspot(selectedSlideId, selectedHotspotId)
@@ -94,12 +131,13 @@ export function EditorCanvas() {
 
   return (
     <div
+      ref={canvasRef}
       className="editor-canvas"
       onClick={handleCanvasClick}
       onKeyDown={handleKeyDown}
       tabIndex={0}
     >
-      <div className="editor-canvas-viewport">
+      <div className="editor-canvas-viewport" style={{ maxWidth: `${zoomLevel * 10}px` }}>
         <SlideWrapper aspectRatio={project?.aspect_ratio ?? '16:9'}>
           {imageSrc && (
             <img
@@ -119,6 +157,7 @@ export function EditorCanvas() {
             hotspots={currentSlide.hotspots}
             selectedHotspotId={selectedHotspotId}
             mode="edit"
+            slideId={selectedSlideId ?? undefined}
             onHotspotClick={handleHotspotClick}
           />
           <TextOverlayLayer
@@ -133,7 +172,13 @@ export function EditorCanvas() {
             style={{
               position: 'absolute',
               inset: 0,
-              cursor: editorTool === 'text' ? 'text' : 'crosshair',
+              cursor:
+                editorTool === 'select'
+                  ? 'default'
+                  : editorTool === 'text'
+                    ? 'text'
+                    : 'crosshair',
+              pointerEvents: editorTool === 'select' ? 'none' : 'auto',
             }}
             onMouseDown={drawing.onMouseDown}
             onMouseMove={drawing.onMouseMove}
@@ -157,6 +202,17 @@ export function EditorCanvas() {
             )}
           </div>
         </SlideWrapper>
+      </div>
+      <div className="editor-zoom-controls">
+        <button className="editor-zoom-btn" onClick={handleZoomOut} title="縮小">
+          −
+        </button>
+        <button className="editor-zoom-label" onClick={handleZoomReset} title="リセット">
+          {zoomLevel}%
+        </button>
+        <button className="editor-zoom-btn" onClick={handleZoomIn} title="拡大">
+          +
+        </button>
       </div>
     </div>
   )
