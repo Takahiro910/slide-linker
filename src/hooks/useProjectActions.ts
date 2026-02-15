@@ -3,6 +3,11 @@ import { useStore } from '../store'
 import { tauriCommands } from '../api/tauri-commands'
 import type { Project, Slide, AspectRatio } from '../types'
 
+/** Normalize a directory path for comparison (Windows-safe). */
+function normalizeDir(dir: string): string {
+  return dir.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase()
+}
+
 export function useProjectActions() {
   const setProject = useStore((s) => s.setProject)
   const setProjectPath = useStore((s) => s.setProjectPath)
@@ -51,15 +56,6 @@ export function useProjectActions() {
     })
     if (!sourcePath) return
 
-    const isPptx = sourcePath.toLowerCase().endsWith('.pptx')
-    if (isPptx) {
-      alert(
-        'PPTX support will be added in a future update.\n' +
-          'Please convert to PDF first.',
-      )
-      return
-    }
-
     const projectDir = await save({
       title: 'Choose project save location',
       filters: [
@@ -71,7 +67,23 @@ export function useProjectActions() {
     const dir = projectDir.replace(/[\\/][^\\/]+$/, '')
     const slidesDir = `${dir}/slides`
 
-    setLoading(true, 'Converting PDF to slide images...')
+    // Warn if the target slides directory already contains images
+    try {
+      const existingCount =
+        await tauriCommands.countSlideImages(slidesDir)
+      if (existingCount > 0) {
+        const proceed = window.confirm(
+          `選択したフォルダの slides/ ディレクトリには既に ${existingCount} 枚の画像があります。\n` +
+            `上書きすると他のプロジェクトに影響する可能性があります。\n\n` +
+            `続行しますか？（別のフォルダを選ぶことを推奨します）`,
+        )
+        if (!proceed) return
+      }
+    } catch {
+      // Directory doesn't exist yet — safe to proceed
+    }
+
+    setLoading(true, 'スライド画像を変換中...')
     try {
       const slides = await tauriCommands.convertPdfToImages(sourcePath, slidesDir)
       const aspectRatio = await tauriCommands.detectAspectRatio(slidesDir)
@@ -81,12 +93,15 @@ export function useProjectActions() {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         source_file: sourcePath,
+        source_files: [sourcePath],
         aspect_ratio: aspectRatio as AspectRatio,
         slides: slides.map(
           (s): Slide => ({
             ...s,
             is_main: true,
+            enabled: true,
             hotspots: [],
+            source_file: sourcePath,
           }),
         ),
       }
@@ -173,6 +188,7 @@ export function useProjectActions() {
 
   async function saveProjectAs() {
     const project = useStore.getState().project
+    const currentProjectDir = useStore.getState().projectDir
     if (!project) return
 
     const path = await save({
@@ -182,21 +198,32 @@ export function useProjectActions() {
     })
     if (!path) return
 
+    const newDir = path.replace(/[\\/][^\\/]+$/, '')
     const updated: Project = {
       ...project,
       updated_at: new Date().toISOString(),
     }
 
     try {
+      // Copy slide images if saving to a different directory
+      if (
+        currentProjectDir &&
+        normalizeDir(newDir) !== normalizeDir(currentProjectDir)
+      ) {
+        setLoading(true, 'スライド画像をコピー中...')
+        await tauriCommands.copySlidesDirectory(currentProjectDir, newDir)
+      }
+
       await tauriCommands.saveProject(path, updated)
-      const dir = path.replace(/[\\/][^\\/]+$/, '')
       setProject(updated)
       setProjectPath(path)
-      setProjectDir(dir)
+      setProjectDir(newDir)
       recordRecentProject(path, updated)
     } catch (err) {
       console.error('Failed to save project:', err)
       alert(`Failed to save: ${err}`)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -245,6 +272,90 @@ export function useProjectActions() {
     }
   }
 
+  async function importAdditionalSlides() {
+    const project = useStore.getState().project
+    const projectDir = useStore.getState().projectDir
+    const projectPath = useStore.getState().projectPath
+    if (!project || !projectDir || !projectPath) return
+
+    const sourcePath = await open({
+      title: 'スライドを追加するファイルを選択',
+      filters: [
+        {
+          name: 'Presentation (PDF / PPTX)',
+          extensions: ['pdf', 'pptx', 'ppt'],
+        },
+      ],
+    })
+    if (!sourcePath) return
+
+    const slidesDir = `${projectDir}/slides`
+    const existingMaxIndex = project.slides.reduce(
+      (max, s) => Math.max(max, s.index),
+      -1,
+    )
+    const startIndex = existingMaxIndex + 1
+
+    setLoading(true, 'スライド画像を変換中...')
+    try {
+      const newSlideInfos = await tauriCommands.convertToImagesWithOffset(
+        sourcePath,
+        slidesDir,
+        startIndex,
+      )
+
+      const newSlides: Slide[] = newSlideInfos.map(
+        (s): Slide => ({
+          ...s,
+          is_main: true,
+          enabled: true,
+          hotspots: [],
+          source_file: sourcePath,
+        }),
+      )
+
+      const currentProject = useStore.getState().project
+      if (currentProject) {
+        ;(useStore.getState() as any).pushHistory(currentProject)
+      }
+
+      const updatedSourceFiles = [
+        ...(project.source_files ?? [project.source_file]),
+      ]
+      if (!updatedSourceFiles.includes(sourcePath)) {
+        updatedSourceFiles.push(sourcePath)
+      }
+
+      const updatedProject: Project = {
+        ...project,
+        source_files: updatedSourceFiles,
+        slides: [...project.slides, ...newSlides],
+        updated_at: new Date().toISOString(),
+      }
+
+      setProject(updatedProject)
+      useStore.getState().markDirty()
+
+      for (const slide of newSlides) {
+        const fullPath = `${projectDir}/${slide.image_path}`
+        try {
+          const base64 = await tauriCommands.readImageBase64(fullPath)
+          setImageCache(slide.image_path, `data:image/png;base64,${base64}`)
+        } catch {
+          // ignore individual image load failures
+        }
+      }
+
+      if (newSlides.length > 0) {
+        selectSlide(newSlides[0].id)
+      }
+    } catch (err) {
+      alert(`追加インポートに失敗しました: ${err}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   function closeProject() {
     clearProject()
     clearImageCache()
@@ -258,6 +369,7 @@ export function useProjectActions() {
     saveProjectAs,
     exportHtml,
     exportPdf,
+    importAdditionalSlides,
     closeProject,
   }
 }

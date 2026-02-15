@@ -13,6 +13,18 @@ export const tauriCommands = {
     return invoke('convert_pdf_to_images', { pdfPath, outputDir })
   },
 
+  convertToImagesWithOffset(
+    sourcePath: string,
+    outputDir: string,
+    startIndex: number,
+  ): Promise<SlideInfo[]> {
+    return invoke('convert_to_images_with_offset', {
+      sourcePath,
+      outputDir,
+      startIndex,
+    })
+  },
+
   detectAspectRatio(slidesDir: string): Promise<string> {
     return invoke('detect_aspect_ratio_from_slides', { slidesDir })
   },
@@ -43,6 +55,25 @@ export const tauriCommands = {
 
   readImageBase64(path: string): Promise<string> {
     return invoke('read_image_base64', { path })
+  },
+
+  copySlideImages(
+    sourceDir: string,
+    targetDir: string,
+    renames: { old_path: string; new_path: string }[],
+  ): Promise<number> {
+    return invoke('copy_slide_images', { sourceDir, targetDir, renames })
+  },
+
+  copySlidesDirectory(
+    sourceDir: string,
+    targetDir: string,
+  ): Promise<number> {
+    return invoke('copy_slides_directory', { sourceDir, targetDir })
+  },
+
+  countSlideImages(slidesDir: string): Promise<number> {
+    return invoke('count_slide_images', { slidesDir })
   },
 
   loadSettings(): Promise<AppSettings> {
