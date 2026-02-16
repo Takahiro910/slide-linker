@@ -64,7 +64,14 @@ export function useProjectActions() {
     })
     if (!projectDir) return
 
-    const dir = projectDir.replace(/[\\/][^\\/]+$/, '')
+    // Extract parent directory and project name from save dialog result
+    const parentDir = projectDir.replace(/[\\/][^\\/]+$/, '')
+    const fileName = projectDir.replace(/^.*[\\/]/, '')
+    const projectName = fileName.replace(/\.slproj\.json$/i, '')
+
+    // Create a dedicated project folder: parentDir/projectName/
+    const dir = `${parentDir}/${projectName}`
+    const actualProjectPath = `${dir}/${fileName}`
     const slidesDir = `${dir}/slides`
 
     // Warn if the target slides directory already contains images
@@ -106,12 +113,12 @@ export function useProjectActions() {
         ),
       }
 
-      await tauriCommands.saveProject(projectDir, project)
+      await tauriCommands.saveProject(actualProjectPath, project)
 
       setProject(project)
-      setProjectPath(projectDir)
+      setProjectPath(actualProjectPath)
       setProjectDir(dir)
-      recordRecentProject(projectDir, project)
+      recordRecentProject(actualProjectPath, project)
 
       await loadAllImages(project, dir)
 
@@ -198,7 +205,11 @@ export function useProjectActions() {
     })
     if (!path) return
 
-    const newDir = path.replace(/[\\/][^\\/]+$/, '')
+    const parentDir = path.replace(/[\\/][^\\/]+$/, '')
+    const fileName = path.replace(/^.*[\\/]/, '')
+    const projectName = fileName.replace(/\.slproj\.json$/i, '')
+    const newDir = `${parentDir}/${projectName}`
+    const actualPath = `${newDir}/${fileName}`
     const updated: Project = {
       ...project,
       updated_at: new Date().toISOString(),
@@ -214,11 +225,11 @@ export function useProjectActions() {
         await tauriCommands.copySlidesDirectory(currentProjectDir, newDir)
       }
 
-      await tauriCommands.saveProject(path, updated)
+      await tauriCommands.saveProject(actualPath, updated)
       setProject(updated)
-      setProjectPath(path)
+      setProjectPath(actualPath)
       setProjectDir(newDir)
-      recordRecentProject(path, updated)
+      recordRecentProject(actualPath, updated)
     } catch (err) {
       console.error('Failed to save project:', err)
       alert(`Failed to save: ${err}`)

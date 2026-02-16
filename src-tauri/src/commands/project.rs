@@ -4,6 +4,14 @@ use crate::models::Project;
 
 #[tauri::command]
 pub async fn save_project(path: String, project: Project) -> Result<(), String> {
+    // Ensure the parent directory exists (handles new project subfolder creation)
+    let p = std::path::Path::new(&path);
+    if let Some(parent) = p.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+
     let json = serde_json::to_string_pretty(&project)
         .map_err(|e| format!("Serialization failed: {}", e))?;
     tokio::fs::write(&path, json)
